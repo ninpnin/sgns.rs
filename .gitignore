@@ -1,0 +1,7 @@
+/target
+Cargo.lock
+unigram.txt
+word.npy
+data.npy
+fits/
+context.npy
