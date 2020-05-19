@@ -22,7 +22,6 @@ fn copy_val(addition: &[f32], original: &mut[f32], dim: u64, r: f32) {
 }
 
 fn train_embedding(data: Vec<u64>,  data_len: u64, vocab_size: u64, dimensionality: u64) {
-
     println!("Train embedding...");
 
     let embedding_len = (vocab_size * dimensionality) as usize;
@@ -55,9 +54,7 @@ fn train_embedding(data: Vec<u64>,  data_len: u64, vocab_size: u64, dimensionali
 
             if i % 100000 == 0 {
                 println!("Word: {}", i);
-                println!("{:?}", &word_vectors[..DIMENSIONALITY as usize]);
             }
-
 
             // Positive samples
             let dim = dimensionality as usize;
@@ -66,7 +63,8 @@ fn train_embedding(data: Vec<u64>,  data_len: u64, vocab_size: u64, dimensionali
             let range = 1 as i64 ..(CONTEXT_SIZE + 1) as i64;
             let range_n = range.clone().map(|ix| -ix);
             let range_sym = range.chain(range_n);
-            // Calculate dot product and sigma
+
+            // Loop through context window
             range_sym.clone().for_each(|separation| {
                 let sep_ix = (separation + (i as i64)) as usize;
                 let mut word_slice = &mut word_vectors[word_index..word_index + dim];
@@ -91,8 +89,8 @@ fn train_embedding(data: Vec<u64>,  data_len: u64, vocab_size: u64, dimensionali
                 let n_word_index = dim * data[i as usize] as usize;
 
                 let mut n_word_slice = &mut word_vectors[n_word_index..n_word_index+ dim];
-                // Calculate dot product and sigma
 
+                // Loop through context window
                 range_sym.clone().for_each(|separation| {
                     let n_sep_ix = (separation + (ns_i as i64)) as usize;
                     let context_ix = dim * data[n_sep_ix] as usize;
@@ -111,12 +109,9 @@ fn train_embedding(data: Vec<u64>,  data_len: u64, vocab_size: u64, dimensionali
             }
         }
     }
-
-    println!("{:?}", &word_vectors[..100]);
     let _ = io::write_embeddings(word_vectors, context_vectors);
-    println!("Traineds.");
+    println!("Training done.");
 }
-
 
 fn main() {
     
@@ -125,10 +120,6 @@ fn main() {
     let data = preprocess::generate_data(dataset_name);
     let data_len = data.len() as u64;
     let vocab_size = 200000;
-    /*
-    let data_len = 100000000;
-    let vocab_size = 370000;
-    let data = generate_random_data(data_len, vocab_size);
-    */
+
     train_embedding(data, data_len, vocab_size, DIMENSIONALITY);
 }

@@ -1,6 +1,7 @@
 import numpy as np
 import pickle
 
+# Script to convert the 1D array to embedding matrix
 
 dimensionality = 96
 
