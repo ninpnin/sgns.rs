@@ -16,13 +16,13 @@ pub fn write_vector(vector: Vec<u64>) -> Result<(), WriteNpyError> {
 }
 
 pub fn write_unigram(inverse_vocabulary: HashMap<u64, String>, vocab_size: u64) {
-    let path = Path::new("unigram.txt");
+    let path = Path::new("unigram.tsv");
     let display = path.display();
 
-    let mut s = "".to_string();
+    let mut s = "index\tword\n".to_string();
     for ix in 0..vocab_size {
         //println!("Moi {} {}", ix, inverse_vocabulary[&ix]);
-        s += &format!("{} {}\n", ix, inverse_vocabulary[&ix]);
+        s += &format!("{}\t{}\n", ix, inverse_vocabulary[&ix]);
     }
     // Open a file in write-only mode, returns `io::Result<File>`
     let mut file = match File::create(&path) {
