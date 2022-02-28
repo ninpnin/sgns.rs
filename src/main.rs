@@ -1,5 +1,7 @@
 use std::env;
 use rand::prelude::*;
+use rand::distributions::{Distribution, Uniform};
+use indicatif::ProgressBar;
 extern crate rayon;
 
 mod io;
@@ -43,6 +45,7 @@ fn train_embedding(data: Vec<u64>,  data_len: u64, vocab_size: u64, dimensionali
     let end = data_len - CONTEXT_SIZE;
 
     let mut rng = thread_rng();
+    let between = Uniform::from(start..end);
 
     for data_pass in 0..PASSES {
         println!("Data pass {}", data_pass);
@@ -50,10 +53,10 @@ fn train_embedding(data: Vec<u64>,  data_len: u64, vocab_size: u64, dimensionali
         let mut word_original = [0.0; DIMENSIONALITY as usize];
         let mut ctxt_original = [0.0; DIMENSIONALITY as usize];
 
+        let bar = ProgressBar::new(end);
         for i in start..end {
-
-            if i % 100000 == 0 {
-                println!("Word: {}", i);
+            if i % 100 == 0 {
+                bar.inc(100);
             }
 
             // Positive samples
@@ -85,7 +88,7 @@ fn train_embedding(data: Vec<u64>,  data_len: u64, vocab_size: u64, dimensionali
             });
 
             for _ in 0..NEGATIVE_SAMPLES {
-                let ns_i = rng.gen_range(start, end);
+                let ns_i = between.sample(&mut rng);
                 let n_word_index = dim * data[i as usize] as usize;
 
                 let mut n_word_slice = &mut word_vectors[n_word_index..n_word_index+ dim];

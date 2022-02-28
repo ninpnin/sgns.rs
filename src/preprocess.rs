@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::fs;
 use crate::io;
+use indicatif::ProgressBar;
 
 // PREPROCESSING CONSTS
 const SKIP_LIMIT: u64 = 5;
@@ -29,12 +30,13 @@ pub fn generate_data(dataset_name: String) -> Vec<u64> {
 
     let mut word_count: HashMap<u64, u64> = HashMap::new();
 
-    println!("First loop...");
+    println!("First preprocessing loop...");
     
     let dir_path = format!("{}", dataset_name);
     let paths = fs::read_dir(dir_path).unwrap();
     
     let mut data: Vec<u64> = vec![];
+    let bar = ProgressBar::new(1);
     for path in paths {
 
         let path_string = path.unwrap().path();
@@ -48,9 +50,10 @@ pub fn generate_data(dataset_name: String) -> Vec<u64> {
                     let tokens = clean_line.split_whitespace();
 
                     for raw_token in tokens {
-                        if token_count % 1000000 == 0 {
-                            println!("Token count {}", token_count);
+                        if token_count % 1000 == 0 {
+                            bar.inc(1000);
                         }
+
                         token_count += 1;
 
                         let token: String = clean_string(raw_token.to_string());
@@ -70,6 +73,7 @@ pub fn generate_data(dataset_name: String) -> Vec<u64> {
             }
         }
     }
+    bar.finish();
 
     let data_len = data.len() as u64;
     let mut filtered_vocab_size = 0;
@@ -77,12 +81,15 @@ pub fn generate_data(dataset_name: String) -> Vec<u64> {
     let mut filtered_vocabulary: HashMap<String, u64> = HashMap::new();
     let mut inverse_filtered_vocabulary: HashMap<u64, String> = HashMap::new();
 
+    println!("Second preprocessing loop...");
+    let bar = ProgressBar::new(1);
+
     for (ix, word_type_index) in data.iter().enumerate() {
         let word_occurences = word_count[&word_type_index];
         let word_str = inverse_vocabulary[&word_type_index].clone();
 
-        if ix % 10000 == 0 {
-            println!("ix: {} ({})", ix, word_str);
+        if ix % 100 == 0 {
+            bar.inc(100);
         }
         if word_occurences >= SKIP_LIMIT {
             let vocab_index = filtered_vocabulary.entry(word_str.to_string()).or_insert(filtered_vocab_size);
@@ -95,14 +102,12 @@ pub fn generate_data(dataset_name: String) -> Vec<u64> {
                 filtered_data.push(vocab_index.clone());
             }
         }
-
     }
 
     let filtered_data_len = filtered_data.len();
-    for n in 0..filtered_vocab_size {
-        println!("Index: {}, word {}", n, inverse_filtered_vocabulary[&n]);
-
-    }
+    //for n in 0..filtered_vocab_size {
+    //    println!("Index: {}, word {}", n, inverse_filtered_vocabulary[&n]);
+    //}
     println!("Vocabulary len: {}", vocabulary.len());
     println!("Filtered vocabulary len: {}", filtered_vocabulary.len());
     println!("Inverse vocabulary: {:?}", inverse_vocabulary.len());
@@ -113,12 +118,7 @@ pub fn generate_data(dataset_name: String) -> Vec<u64> {
     let _ = io::write_vector(filtered_data.clone());
     io::write_unigram(inverse_filtered_vocabulary.clone(), filtered_vocab_size);
     
-    println!("{:?}", filtered_data);
-
-    filtered_data.iter().for_each(|ix|
-
-        println!("{}", inverse_filtered_vocabulary[ix])
-        );
+    //println!("{:?}", filtered_data);
     filtered_data
 }
 
