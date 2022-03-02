@@ -1,7 +1,9 @@
 use std::env;
 use rand::prelude::*;
 use rand::distributions::{Distribution, Uniform};
+use rand::seq::SliceRandom;
 use indicatif::ProgressBar;
+use clap::Parser;
 extern crate rayon;
 
 mod io;
@@ -54,7 +56,11 @@ fn train_embedding(data: Vec<u64>,  data_len: u64, vocab_size: u64, dimensionali
         let mut ctxt_original = [0.0; DIMENSIONALITY as usize];
 
         let bar = ProgressBar::new(end);
-        for i in start..end {
+
+        // Iterate over the whole data in a shuffled order
+        let mut shuffled_range: Vec<u64> = (start..end).collect();
+        shuffled_range.shuffle(&mut rng);
+        for i in shuffled_range {
             if i % 100 == 0 {
                 bar.inc(100);
             }
@@ -116,10 +122,20 @@ fn train_embedding(data: Vec<u64>,  data_len: u64, vocab_size: u64, dimensionali
     println!("Training done.");
 }
 
+
+/// Simple program to greet a person
+#[derive(Parser, Debug)]
+#[clap(author, version, about, long_about = None)]
+struct Args {
+    /// Name of the person to greet
+    #[clap(short, long)]
+    data_path: String,
+}
+
 fn main() {
-    
-    let args: Vec<String> = env::args().collect();
-    let dataset_name: String = args[1].to_string();
+    let args = Args::parse();
+    //let args: Vec<String> = env::args().collect();
+    let dataset_name: String = args.data_path;
     let data = preprocess::generate_data(dataset_name);
     let data_len = data.len() as u64;
     let vocab_size = 200000;
