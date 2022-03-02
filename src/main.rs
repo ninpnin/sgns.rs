@@ -11,8 +11,8 @@ mod preprocess;
 mod math;
 
 // TRAINING CONSTS
-const CONTEXT_SIZE: u64 = 5;
-const DIMENSIONALITY: u64 = 96;
+//const ws: u64 = 5;
+//const DIMENSIONALITY: u64 = 96;
 
 // Add input's values to output
 // [1,2,3], [0,1,0] -> [1,2,3], [1,3,3]
@@ -22,7 +22,7 @@ fn copy_val(addition: &[f32], original: &mut[f32], dim: u64, r: f32) {
     }
 }
 
-fn train_embedding(data: Vec<u64>,  data_len: u64, vocab_size: u64, dimensionality: u64, passes: u8, learning_rate: f32, ns: u8) {
+fn train_embedding(data: Vec<u64>,  data_len: u64, vocab_size: u64, dimensionality: u64, passes: u8, learning_rate: f32, ns: u8, ws: u64) {
     println!("Train embedding...");
 
     let embedding_len = (vocab_size * dimensionality) as usize;
@@ -40,8 +40,8 @@ fn train_embedding(data: Vec<u64>,  data_len: u64, vocab_size: u64, dimensionali
     }
     println!("Done.");
 
-    let start = CONTEXT_SIZE;
-    let end = data_len - CONTEXT_SIZE;
+    let start = ws;
+    let end = data_len - ws;
 
     let mut rng = thread_rng();
     let between = Uniform::from(start..end);
@@ -49,8 +49,8 @@ fn train_embedding(data: Vec<u64>,  data_len: u64, vocab_size: u64, dimensionali
     for data_pass in 0..passes {
         println!("Data pass {}", data_pass);
 
-        let mut word_original = [0.0; DIMENSIONALITY as usize];
-        let mut ctxt_original = [0.0; DIMENSIONALITY as usize];
+        let mut word_original = vec![0.0; dimensionality as usize];
+        let mut ctxt_original = vec![0.0; dimensionality as usize];
 
         let bar = ProgressBar::new(end);
 
@@ -66,7 +66,7 @@ fn train_embedding(data: Vec<u64>,  data_len: u64, vocab_size: u64, dimensionali
             let dim = dimensionality as usize;
             let word_index = dim * data[i as usize] as usize;
 
-            let range = 1 as i64 ..(CONTEXT_SIZE + 1) as i64;
+            let range = 1 as i64 ..(ws + 1) as i64;
             let range_n = range.clone().map(|ix| -ix);
             let range_sym = range.chain(range_n);
 
@@ -78,7 +78,7 @@ fn train_embedding(data: Vec<u64>,  data_len: u64, vocab_size: u64, dimensionali
                 let context_ix = dim * data[sep_ix] as usize;
                 let mut context_slice = &mut context_vectors[context_ix..context_ix+dim];
 
-                let dot = math::dot_prod(&word_slice, &context_slice, DIMENSIONALITY);
+                let dot = math::dot_prod(&word_slice, &context_slice, dimensionality);
                 let sigm = math::sigmoid(-dot);
                 let multiplier = sigm * learning_rate;
 
@@ -86,8 +86,8 @@ fn train_embedding(data: Vec<u64>,  data_len: u64, vocab_size: u64, dimensionali
                 (word_original).copy_from_slice(word_slice);
                 (ctxt_original).copy_from_slice(context_slice);
 
-                copy_val(&word_original, &mut context_slice, DIMENSIONALITY, multiplier);
-                copy_val(&ctxt_original, &mut word_slice, DIMENSIONALITY, multiplier);
+                copy_val(&word_original, &mut context_slice, dimensionality, multiplier);
+                copy_val(&ctxt_original, &mut word_slice, dimensionality, multiplier);
             });
 
             for _ in 0..ns {
@@ -102,15 +102,15 @@ fn train_embedding(data: Vec<u64>,  data_len: u64, vocab_size: u64, dimensionali
                     let context_ix = dim * data[n_sep_ix] as usize;
                     let mut n_context_slice = &mut context_vectors[context_ix..context_ix+dim];
 
-                    let dot = math::dot_prod(&n_word_slice, &n_context_slice, DIMENSIONALITY);
+                    let dot = math::dot_prod(&n_word_slice, &n_context_slice, dimensionality);
                     let sigm = math::sigmoid(dot);
                     let multiplier = - sigm * learning_rate;
 
                     (word_original).copy_from_slice(n_word_slice);
                     (ctxt_original).copy_from_slice(n_context_slice);
 
-                    copy_val(&word_original, &mut n_context_slice, DIMENSIONALITY, multiplier);
-                    copy_val(&ctxt_original, &mut n_word_slice, DIMENSIONALITY, multiplier);
+                    copy_val(&word_original, &mut n_context_slice, dimensionality, multiplier);
+                    copy_val(&ctxt_original, &mut n_word_slice, dimensionality, multiplier);
                 });
             }
         }
@@ -140,6 +140,14 @@ struct Args {
     #[clap(short, long, default_value_t = 5)]
     negative_samples: u8,
 
+    /// Size of the context window
+    #[clap(short, long, default_value_t = 5)]
+    window_size: u64,
+
+    /// Embedding dimensionality samples
+    #[clap(short, long, default_value_t = 96)]
+    dimensionality: u64,
+
 }
 
 fn main() {
@@ -150,5 +158,5 @@ fn main() {
     let data_len = data.len() as u64;
     let vocab_size = 200000;
 
-    train_embedding(data, data_len, vocab_size, DIMENSIONALITY, args.epochs, args.learning_rate, args.negative_samples);
+    train_embedding(data, data_len, vocab_size, args.dimensionality, args.epochs, args.learning_rate, args.negative_samples, args.window_size);
 }
