@@ -4,5 +4,7 @@ Pure rust implementation of the [Mikolov et al. (2013)](https://arxiv.org/abs/13
 
 TODO:
 
-- Shuffle the data
-- Parallelize
+- [x] Shuffle the data
+- [ ] ~~Parallelize~~
+- [ ] CBOW
+- [ ] Regularization
