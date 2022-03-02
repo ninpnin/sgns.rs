@@ -1,7 +1,6 @@
 /target
 Cargo.lock
 unigram.txt
-word.npy
-data.npy
+*.npy
 fits/
-context.npy
+unigram.tsv

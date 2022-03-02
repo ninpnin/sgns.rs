@@ -11,10 +11,7 @@ mod preprocess;
 mod math;
 
 // TRAINING CONSTS
-const LEARNING_RATE: f32 = 0.025;
-const PASSES: u8 = 5;
 const CONTEXT_SIZE: u64 = 5;
-const NEGATIVE_SAMPLES: u8 = 5;
 const DIMENSIONALITY: u64 = 96;
 
 // Add input's values to output
@@ -25,7 +22,7 @@ fn copy_val(addition: &[f32], original: &mut[f32], dim: u64, r: f32) {
     }
 }
 
-fn train_embedding(data: Vec<u64>,  data_len: u64, vocab_size: u64, dimensionality: u64) {
+fn train_embedding(data: Vec<u64>,  data_len: u64, vocab_size: u64, dimensionality: u64, passes: u8, learning_rate: f32, ns: u8) {
     println!("Train embedding...");
 
     let embedding_len = (vocab_size * dimensionality) as usize;
@@ -49,7 +46,7 @@ fn train_embedding(data: Vec<u64>,  data_len: u64, vocab_size: u64, dimensionali
     let mut rng = thread_rng();
     let between = Uniform::from(start..end);
 
-    for data_pass in 0..PASSES {
+    for data_pass in 0..passes {
         println!("Data pass {}", data_pass);
 
         let mut word_original = [0.0; DIMENSIONALITY as usize];
@@ -83,7 +80,7 @@ fn train_embedding(data: Vec<u64>,  data_len: u64, vocab_size: u64, dimensionali
 
                 let dot = math::dot_prod(&word_slice, &context_slice, DIMENSIONALITY);
                 let sigm = math::sigmoid(-dot);
-                let multiplier = sigm * LEARNING_RATE;
+                let multiplier = sigm * learning_rate;
 
                 // Copy to placeholders so that                 
                 (word_original).copy_from_slice(word_slice);
@@ -93,7 +90,7 @@ fn train_embedding(data: Vec<u64>,  data_len: u64, vocab_size: u64, dimensionali
                 copy_val(&ctxt_original, &mut word_slice, DIMENSIONALITY, multiplier);
             });
 
-            for _ in 0..NEGATIVE_SAMPLES {
+            for _ in 0..ns {
                 let ns_i = between.sample(&mut rng);
                 let n_word_index = dim * data[i as usize] as usize;
 
@@ -107,7 +104,7 @@ fn train_embedding(data: Vec<u64>,  data_len: u64, vocab_size: u64, dimensionali
 
                     let dot = math::dot_prod(&n_word_slice, &n_context_slice, DIMENSIONALITY);
                     let sigm = math::sigmoid(dot);
-                    let multiplier = - sigm * LEARNING_RATE;
+                    let multiplier = - sigm * learning_rate;
 
                     (word_original).copy_from_slice(n_word_slice);
                     (ctxt_original).copy_from_slice(n_context_slice);
@@ -127,9 +124,22 @@ fn train_embedding(data: Vec<u64>,  data_len: u64, vocab_size: u64, dimensionali
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 struct Args {
-    /// Name of the person to greet
+    /// Path to the .txt data files
     #[clap(short, long)]
     data_path: String,
+
+    /// How many epochs you train for
+    #[clap(short, long, default_value_t = 5)]
+    epochs: u8,
+
+    /// Learning rate of the SGD algorithm
+    #[clap(short, long, default_value_t = 0.025)]
+    learning_rate: f32,
+
+    /// Number of negative samples
+    #[clap(short, long, default_value_t = 5)]
+    negative_samples: u8,
+
 }
 
 fn main() {
@@ -140,5 +150,5 @@ fn main() {
     let data_len = data.len() as u64;
     let vocab_size = 200000;
 
-    train_embedding(data, data_len, vocab_size, DIMENSIONALITY);
+    train_embedding(data, data_len, vocab_size, DIMENSIONALITY, args.epochs, args.learning_rate, args.negative_samples);
 }
