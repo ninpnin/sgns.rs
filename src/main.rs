@@ -1,4 +1,3 @@
-use std::env;
 use rand::prelude::*;
 use rand::distributions::{Distribution, Uniform};
 use rand::seq::SliceRandom;
@@ -152,7 +151,6 @@ struct Args {
 
 fn main() {
     let args = Args::parse();
-    //let args: Vec<String> = env::args().collect();
     let dataset_name: String = args.data_path;
     let data = preprocess::generate_data(dataset_name);
     let data_len = data.len() as u64;
