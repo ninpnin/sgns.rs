@@ -5,7 +5,7 @@ Pure rust implementation of the [Mikolov et al. (2013)](https://arxiv.org/abs/13
 ## TODO
 
 - [x] Shuffle the data
-- [ ] Control hyperparameters with CLI args
+- [x] Control hyperparameters with CLI args
 - [ ] ~~Parallelize~~
 - [ ] CBOW
 - [ ] Regularization
